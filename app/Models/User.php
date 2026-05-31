@@ -2,48 +2,64 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $table = 'users';
+    protected $primaryKey = 'user_id';
+
     protected $fillable = [
-        'name',
+        'fullname',
         'email',
-        'password',
+        'password_hash',
+        'phone',
+        'avatar_url',
+        'otp_code',
+        'otp_expires_at',
+        'google_id',
+        'is_active',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password_hash',
+        'otp_code',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'otp_expires_at' => 'datetime',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Ép Laravel Auth dùng trường password_hash thay vì trường 'password' mặc định
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->password_hash ?? '';
+    }
+
+    public function customer(): HasOne
+    {
+        return $this->hasOne(Customer::class, 'customer_id', 'user_id');
+    }
+
+    public function staff(): HasOne
+    {
+        return $this->hasOne(Staff::class, 'staff_id', 'user_id');
+    }
+
+    public function admin(): HasOne
+    {
+        return $this->hasOne(Admin::class, 'admin_id', 'user_id');
     }
 }
