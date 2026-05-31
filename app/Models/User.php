@@ -3,63 +3,78 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\HasApiTokens; // <--- THÊM DÒNG NÀY (Đường dẫn chuẩn cho Laravel mới)
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable; // <--- THÊM HasApiTokens VÀO ĐÂY
 
-    protected $table = 'users';
+    // Chỉ định chính xác tên bảng trong Database của bạn
+    protected $table = 'user';
+
+    // Khai báo lại tên cột khóa chính của bảng
     protected $primaryKey = 'user_id';
 
+    /**
+     * Các trường dữ liệu được phép gán giá trị hàng loạt (Mass Assignment)
+     */
     protected $fillable = [
         'fullname',
         'email',
         'password_hash',
         'phone',
         'avatar_url',
-        'otp_code',
-        'otp_expires_at',
         'google_id',
         'is_active',
     ];
 
+    /**
+     * Ẩn các trường thông tin nhạy cảm khi trả dữ liệu JSON API về cho Client
+     */
     protected $hidden = [
         'password_hash',
-        'otp_code',
+        'remember_token',
     ];
 
-    protected function casts(): array
+    /**
+     * Ép kiểu dữ liệu (Casting) các trường cần thiết
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * Ghi đè phương thức này để Laravel Auth hiểu cột mật khẩu của bạn tên là password_hash
+     */
+    public function getAuthPassword()
     {
-        return [
-            'otp_expires_at' => 'datetime',
-            'is_active' => 'boolean',
-        ];
+        return $this->password_hash;
     }
 
     /**
-     * Ép Laravel Auth dùng trường password_hash thay vì trường 'password' mặc định
+     * Mối quan hệ 1-1 với bảng Admin
      */
-    public function getAuthPassword(): string
+    public function admin()
     {
-        return $this->password_hash ?? '';
+        return $this->hasOne(Admin::class, 'admin_id', 'user_id');
     }
 
-    public function customer(): HasOne
-    {
-        return $this->hasOne(Customer::class, 'customer_id', 'user_id');
-    }
-
-    public function staff(): HasOne
+    /**
+     * Mối quan hệ 1-1 với bảng Staff
+     */
+    public function staff()
     {
         return $this->hasOne(Staff::class, 'staff_id', 'user_id');
     }
 
-    public function admin(): HasOne
+    /**
+     * Mối quan hệ 1-1 với bảng Customer
+     */
+    public function customer()
     {
-        return $this->hasOne(Admin::class, 'admin_id', 'user_id');
+        return $this->hasOne(Customer::class, 'customer_id', 'user_id');
     }
 }

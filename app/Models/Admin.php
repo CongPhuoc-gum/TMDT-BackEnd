@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Admin extends Model
 {
-    protected $table = 'admins';
+    // Đã sửa: Trỏ chính xác vào bảng số ít 'admin'
+    protected $table = 'admin';
+    
     protected $primaryKey = 'admin_id';
     public $incrementing = false;
 
