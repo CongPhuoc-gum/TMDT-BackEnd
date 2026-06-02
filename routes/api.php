@@ -17,11 +17,14 @@ use App\Http\Controllers\Api\Customer\CustomRequestController;
 use App\Http\Controllers\Api\Customer\OccasionReminderController;
 use App\Http\Controllers\Api\Staff\DeliveryController;
 use App\Http\Controllers\Api\Staff\DesignerController;
+
+// MỚI: Import các Controller xử lý Thống kê & Chat Realtime
+use App\Http\Controllers\Api\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Api\Customer\ChatController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - Hệ Thống Cyberbloom (Laravel 12.x)
 | API Routes - Hệ Thống Cyberbloom (Laravel 12.x)
 |--------------------------------------------------------------------------
 */
@@ -45,9 +48,6 @@ Route::prefix('auth')->group(function () {
 
 // API công khai cho khách xem và lọc danh sách sản phẩm hoa tươi ngoài trang chủ
 Route::get('/products', [CatalogController::class, 'getProductsForCustomer']);
-
-// API công khai để lấy danh sách ý nghĩa hoa/cảm xúc hiển thị ngoài bộ lọc Trang chủ hoặc trang Tự thiết kế hoa
-Route::get('/flower-meanings', [FlowerMeaningController::class, 'index']);
 
 // API công khai để lấy danh sách ý nghĩa hoa/cảm xúc hiển thị ngoài bộ lọc Trang chủ hoặc trang Tự thiết kế hoa
 Route::get('/flower-meanings', [FlowerMeaningController::class, 'index']);
@@ -98,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Phát hành mã giảm giá Marketing
         Route::post('/coupons', [CouponController::class, 'store']);
         Route::delete('/coupons/{id}', [CouponController::class, 'destroy']);
+
+        // MỚI: Endpoint độc quyền cho Admin xem biểu đồ, thống kê doanh thu và sản phẩm bán chạy
+        Route::get('/analytics/report', [AdminAnalyticsController::class, 'getReport']);
     });
 
     /* =========================================================================
@@ -119,6 +122,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/requests/pending', [DesignerController::class, 'getPendingRequests']);
             Route::patch('/requests/{customRequestId}/quote', [DesignerController::class, 'updateQuotation']);
         });
+
+        // MỚI - NHÓM 4: CHĂM SÓC KHÁCH HÀNG (Staff Chat Dashboard)
+        Route::get('/chats/active', [ChatController::class, 'getActiveChats']);
+        Route::post('/chats/{chatId}/accept', [ChatController::class, 'acceptChat']);
+        Route::patch('/chats/{chatId}/close', [ChatController::class, 'closeChat']);
     });
 
     /* =========================================================================
@@ -152,5 +160,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Lưu trữ ngày kỷ niệm và cài đặt ngày nhận thông báo nhắc nhở tự động
         Route::apiResource('occasion-reminders', OccasionReminderController::class)->only(['index', 'store', 'destroy']);
+
+        // MỚI: Khách hàng khởi tạo hoặc kết nối lại phòng chat hỗ trợ trực tuyến
+        Route::post('/chat/init', [ChatController::class, 'initChat']);
     });
+
+    // MỚI: Kênh chung để cả Customer và Staff đẩy nội dung tin nhắn vào phòng chat (Xác thực động)
+    Route::post('/chat/{chatId}/send', [ChatController::class, 'sendMessage']);
 });
