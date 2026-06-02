@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
 | API Routes - Hệ Thống Cyberbloom (Laravel 12.x)
+| API Routes - Hệ Thống Cyberbloom (Laravel 12.x)
 |--------------------------------------------------------------------------
 */
 
@@ -44,6 +45,9 @@ Route::prefix('auth')->group(function () {
 
 // API công khai cho khách xem và lọc danh sách sản phẩm hoa tươi ngoài trang chủ
 Route::get('/products', [CatalogController::class, 'getProductsForCustomer']);
+
+// API công khai để lấy danh sách ý nghĩa hoa/cảm xúc hiển thị ngoài bộ lọc Trang chủ hoặc trang Tự thiết kế hoa
+Route::get('/flower-meanings', [FlowerMeaningController::class, 'index']);
 
 // API công khai để lấy danh sách ý nghĩa hoa/cảm xúc hiển thị ngoài bộ lọc Trang chủ hoặc trang Tự thiết kế hoa
 Route::get('/flower-meanings', [FlowerMeaningController::class, 'index']);
