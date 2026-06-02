@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Catalog\CatalogController;
+use App\Http\Controllers\Api\Marketing\CouponController;
+use App\Http\Controllers\Api\Customer\CustomerProfileController;
+use App\Http\Controllers\Api\Order\CheckoutController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -10,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-/* --- Các Route Công Khai (Không cần Token) --- */
-/* --- Các Route Công Khai (Không cần Token) --- */
+/* --- 1. Các Route Công Khai Hoàn Toàn (Không cần Token) --- */
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -21,28 +25,76 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/redirect', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
-    // 🌸 ĐÃ SỬA: Xóa chữ /auth bị trùng để Postman nhận đúng đường dẫn chuẩn
+    // Khôi phục mật khẩu công khai
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/verify-password-otp', [AuthController::class, 'verifyPasswordOtp']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
-/* --- Các Route Bảo Mật (Yêu cầu phải đăng nhập qua Sanctum Token) --- */
+// API công khai cho khách xem và lọc danh sách sản phẩm hoa tươi ngoài trang chủ
+Route::get('/products', [CatalogController::class, 'getProductsForCustomer']);
+
+
+/* =========================================================================
+ * 🛒 CỤM ROUTE CHECKOUT & THANH TOÁN (Công khai hoàn toàn, xử lý Token động trong Controller)
+ * ========================================================================= */
+Route::prefix('checkout')->group(function () {
+    Route::post('/validate', [CheckoutController::class, 'calculateOrder']); // Xem trước hóa đơn, tính giảm giá
+    Route::post('/place-order', [CheckoutController::class, 'placeOrder']);   // Đặt hàng chính thức để lấy link VNPAY/Stripe
+    
+    // Các Route Webhook/Callback nhận tín hiệu từ cổng thanh toán ngân hàng
+    Route::get('/vnpay-callback', [CheckoutController::class, 'vnpayCallback']);
+    Route::get('/stripe-callback', [CheckoutController::class, 'stripeCallback']);
+});
+
+
+/* --- 2. Các Route Bảo Mật Nghiêm Ngặt (Bắt buộc phải đăng nhập và phân đúng quyền) --- */
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Phân quyền độc quyền cho Quản trị viên (Admin)
+    /* =========================================================================
+     * [ADMIN] Phân quyền độc quyền cho Quản trị viên
+     * ========================================================================= */
     Route::middleware('admin')->prefix('admin')->group(function () {
-        // Chỉ tài khoản có Role là Admin mới có quyền gọi API tạo tài khoản cho Staff
+        // Luồng quản lý nhân sự cũ
         Route::post('/staff/create', [AuthController::class, 'createStaffAccount']);
+        
+        // Quản lý danh sách Người dùng & Nhân viên cấp cao
+        Route::get('/users', [AdminUserController::class, 'index']); 
+        Route::post('/staff/store', [AdminUserController::class, 'storeStaff']); 
+        Route::patch('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus']); 
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy']); 
+
+        // CRUD Danh mục (Category)
+        Route::post('/categories', [CatalogController::class, 'storeCategory']); 
+        Route::put('/categories/{id}', [CatalogController::class, 'updateCategory']); 
+        Route::delete('/categories/{id}', [CatalogController::class, 'destroyCategory']); 
+
+        // CRUD Sản phẩm hoa tươi đa phương tiện
+        Route::post('/products', [CatalogController::class, 'storeProduct']); 
+        Route::post('/products/{id}', [CatalogController::class, 'updateProduct']); 
+        Route::delete('/products/{id}', [CatalogController::class, 'destroyProduct']); 
+
+        // Phát hành mã giảm giá Marketing
+        Route::post('/coupons', [CouponController::class, 'store']); 
+        Route::delete('/coupons/{id}', [CouponController::class, 'destroy']); 
     });
 
-    // Phân quyền cho Nhân viên (Staff)
+    /* =========================================================================
+     * [STAFF] Phân quyền cho Nhân viên (Designer, Florist, CS, Delivery)
+     * ========================================================================= */
     Route::middleware('staff')->prefix('staff')->group(function () {
-        // Các API xử lý đơn hàng, cắm hoa, chat... sẽ viết ở đây
+        // Cho phép nhân viên xem danh sách mã giảm giá để tư vấn cho khách
+        Route::get('/coupons', [CouponController::class, 'index']);
     });
 
-    // Phân quyền cho Khách hàng (Customer)
+    /* =========================================================================
+     * [CUSTOMER] Phân quyền cho Khách hàng đã đăng nhập tài khoản
+     * ========================================================================= */
     Route::middleware('customer')->prefix('customer')->group(function () {
-        // Các API giỏ hàng, xem đơn hàng cá nhân... sẽ viết ở đây
+        // Cập nhật thông tin cá nhân, đổi mật khẩu & Sổ địa chỉ giao hàng
+        Route::post('/profile/update', [CustomerProfileController::class, 'updateProfile']); 
+        Route::get('/addresses', [CustomerProfileController::class, 'getAddresses']); 
+        Route::post('/addresses', [CustomerProfileController::class, 'storeAddress']); 
+        Route::delete('/addresses/{id}', [CustomerProfileController::class, 'destroyAddress']); 
     });
 });
