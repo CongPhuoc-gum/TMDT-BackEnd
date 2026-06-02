@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Catalog\CatalogController;
+use App\Http\Controllers\Api\Admin\FlowerMeaningController; // Khai báo thêm Controller ý nghĩa hoa mới
 use App\Http\Controllers\Api\Marketing\CouponController;
 use App\Http\Controllers\Api\Customer\CustomerProfileController;
 use App\Http\Controllers\Api\Order\CheckoutController;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - Hệ Thống Cyberbloom
+| API Routes - Hệ Thống Cyberbloom (Laravel 12.x)
 |--------------------------------------------------------------------------
 */
 
@@ -33,6 +34,9 @@ Route::prefix('auth')->group(function () {
 
 // API công khai cho khách xem và lọc danh sách sản phẩm hoa tươi ngoài trang chủ
 Route::get('/products', [CatalogController::class, 'getProductsForCustomer']);
+
+// API công khai để lấy danh sách ý nghĩa hoa/cảm xúc hiển thị ngoài bộ lọc Trang chủ hoặc trang Tự thiết kế hoa
+Route::get('/flower-meanings', [FlowerMeaningController::class, 'index']);
 
 
 /* =========================================================================
@@ -58,21 +62,25 @@ Route::middleware('auth:sanctum')->group(function () {
         // Luồng quản lý nhân sự cũ
         Route::post('/staff/create', [AuthController::class, 'createStaffAccount']);
         
-        // Quản lý danh sách Người dùng & Nhân viên cấp cao
+        // Quản lý danh sách Người dùng & Nhân viên cấp cao (AdminUserController)
         Route::get('/users', [AdminUserController::class, 'index']); 
         Route::post('/staff/store', [AdminUserController::class, 'storeStaff']); 
         Route::patch('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus']); 
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy']); 
 
-        // CRUD Danh mục (Category)
+        // CRUD Danh mục (Category) - Tận dụng file CatalogController của bạn
         Route::post('/categories', [CatalogController::class, 'storeCategory']); 
         Route::put('/categories/{id}', [CatalogController::class, 'updateCategory']); 
         Route::delete('/categories/{id}', [CatalogController::class, 'destroyCategory']); 
 
-        // CRUD Sản phẩm hoa tươi đa phương tiện
+        // CRUD Sản phẩm hoa tươi đa phương tiện (CatalogController)
         Route::post('/products', [CatalogController::class, 'storeProduct']); 
-        Route::post('/products/{id}', [CatalogController::class, 'updateProduct']); 
+        Route::post('/products/{id}', [CatalogController::class, 'updateProduct']); // Dùng POST nhận Multipart-Data tốt hơn
         Route::delete('/products/{id}', [CatalogController::class, 'destroyProduct']); 
+
+        // CRUD Quản lý Ý nghĩa hoa chuyên sâu (Phục vụ đặt hoa theo yêu cầu / Gợi ý thông điệp cảm xúc)
+        // Sinh ra trọn gói các URL dạng RESTful chuẩn: POST, GET{id}, PUT{id}, DELETE{id} cho /admin/flower-meanings
+        Route::apiResource('/flower-meanings', FlowerMeaningController::class)->except(['index']);
 
         // Phát hành mã giảm giá Marketing
         Route::post('/coupons', [CouponController::class, 'store']); 

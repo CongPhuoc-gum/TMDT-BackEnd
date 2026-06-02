@@ -43,7 +43,7 @@ class CatalogController extends Controller
     public function storeProduct(StoreProductRequest $request): JsonResponse
     {
         // Bước 2.1: Lưu thông tin chữ của sản phẩm vào bảng product trước
-$product = Product::create([
+        $product = Product::create([
             'category_id'       => $request->input('category_id'),
             'flower_meaning_id' => $request->input('flower_meaning_id'),
             'product_name'      => $request->input('product_name'),
@@ -168,6 +168,20 @@ $product = Product::create([
             }
             $img->delete();
         }
+    }
+
+    public function storeCategory(\App\Http\Requests\Admin\StoreCategoryRequest $request): JsonResponse
+    {
+        $category = \App\Models\Category::create([
+            'category_name' => $request->input('category_name'),
+            'description'   => $request->input('description'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thêm mới danh mục hoa thành công.',
+            'data'    => $category
+        ], 201);
     }
 
     /**
